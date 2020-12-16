@@ -1,0 +1,78 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docker-proxy
+  labels:
+    app: docker-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docker-proxy
+  template:
+    metadata:
+      labels:
+        app: docker-proxy
+    spec:
+      containers:
+      - name: docker-registry-proxy
+        image: rpardini/docker-registry-proxy:0.2.4
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: REGISTRIES
+          value: "docker.io k8s.gcr.io gcr.io quay.io"
+        ports:
+        - containerPort: 3128
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: 3128
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: 3128
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        volumeMounts:
+        - mountPath: /docker_mirror_cache
+          name: cache
+        - mountPath: /ca
+          name: certs
+      volumes:
+      - name: cache
+        hostPath:
+          path: /opt/docker-proxy/cache
+          type: Directory
+      - name: certs
+        hostPath:
+          path: /opt/docker-proxy/certs
+          type: Directory
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: docker-proxy
+  labels:
+    app: docker-proxy
+spec:
+  type: NodePort
+  ports:
+  - name: docker-proxy
+    port: 3128
+    targetPort: 3128
+    nodePort: 30128
+    protocol: TCP
+  selector:
+    app: docker-proxy

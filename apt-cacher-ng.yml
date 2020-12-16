@@ -1,0 +1,65 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apt-cacher-ng
+  labels:
+    app: apt-cacher-ng
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apt-cacher-ng
+  template:
+    metadata:
+      labels:
+        app: apt-cacher-ng
+    spec:
+      containers:
+      - name: apt-cacher-ng
+        image: sameersbn/apt-cacher-ng:3.3-20200524
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3142
+        livenessProbe:
+          failureThreshold: 3
+          tcpSocket:
+            port: 3142
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          tcpSocket:
+            port: 3142
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        volumeMounts:
+        - mountPath: /var/cache/apt-cacher-ng
+          name: cache
+      volumes:
+      - name: cache
+        hostPath:
+          path: /opt/apt
+          type: Directory
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apt-cacher-ng
+  labels:
+    app: apt-cacher-ng
+spec:
+  type: NodePort
+  ports:
+  - name: apt-cacher-ng
+    port: 3142
+    targetPort: 3142
+    nodePort: 30142
+    protocol: TCP
+  selector:
+    app: apt-cacher-ng
