@@ -1,0 +1,26 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: csi-test-pod-file
+  labels:
+    app: csi-test-pod-file-app
+  namespace: csi-driver-test
+spec:
+  volumes:
+  - name: file-volume 
+    persistentVolumeClaim:
+      claimName: csi-test-pvc-file
+  containers:
+  - name: csi-test-pod-file
+    image: ubuntu:20.04
+    volumeMounts:
+    - name: file-volume 
+      mountPath: /mnt/file
+    command: ["/bin/sh","-c"]
+    args: 
+      - echo "";
+        echo "Checking filesystem";
+        df -hP /mnt/file;
+        echo "Done checking filesystem";
+        sleep infinity;
