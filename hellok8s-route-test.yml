@@ -1,0 +1,70 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hellok8s
+  labels:
+    app: hellok8s
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hellok8s
+  template:
+    metadata:
+      labels:
+        app: hellok8s
+    spec:
+      containers:
+      - name: hellok8s
+        image: docker.io/rlkamradt/hellok8s:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: 8080
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: 8080
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hellok8s
+  labels:
+    app: hellok8s
+spec:
+  type: ClusterIP
+  ports:
+  - name: hellok8s
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: hellok8s
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: hellok8s
+spec:
+  to:
+    kind: Service
+    name: hellok8s
+    weight: 100
+  port:
+    targetPort: 8080
